@@ -1,6 +1,9 @@
 import mpi.*;
 
 
+import java.nio.CharBuffer;
+
+
 public class MPIBenchmark {
 
     public static int WIDTH = 2048;
@@ -11,11 +14,11 @@ public class MPIBenchmark {
 
     public static void send_messages() throws MPIException {
         for(int j = 0; j < NB_MESSAGES; ++j) {
-            char buffer[] = new char[WIDTH];
+            CharBuffer buffer = MPI.newCharBuffer(WIDTH);
             for(int i = 0; i < WIDTH; ++i) {
-                buffer[i] = 'a';
+                buffer.put('a');
             }
-            MPI.COMM_WORLD.send(buffer, WIDTH, MPI.CHAR, RECEIVER, 0);
+            MPI.COMM_WORLD.sSend(buffer, WIDTH, MPI.CHAR, RECEIVER, 0);
 
             if((j + 1) % (1 * 1000 * 1000) == 0) {
                 System.out.println(String.format("Sent %d messages with size %d.\n", (j + 1), WIDTH));
@@ -24,8 +27,7 @@ public class MPIBenchmark {
     }
 
     public static void receive_messages() throws MPIException {
-        char buffer[] = new char[10];
-        int buffer_size = 10;
+        CharBuffer buffer = MPI.newCharBuffer(WIDTH);
         for(int j = 0; j < NB_MESSAGES; ++j) {
             int size = WIDTH;
             Status status;
@@ -34,17 +36,15 @@ public class MPIBenchmark {
 
             //size = status.getCount(MPI.CHAR);
 
-            if(size > buffer_size) {
-                buffer = new char[size];
-                buffer_size = size;
+            if(size > buffer.capacity()) {
+                buffer.allocate(size);
             }
 
             status = MPI.COMM_WORLD.recv(buffer, size, MPI.CHAR, SENDER, 0); 
 
-            ///if((j + 1) % (10 * 1000 * 1000) == 0) {
-            ///    printf("Received %d messages with size %d.\n", (j + 1), WIDTH);
-            ///    printf("Message: %s\n", buffer+2048-32);
-            ///}
+            if((j + 1) % (1 * 1000 * 1000) == 0) {
+                System.out.println(String.format("Received %d messages with size %d.\n", (j + 1), WIDTH));
+            }
         }
     }
 
